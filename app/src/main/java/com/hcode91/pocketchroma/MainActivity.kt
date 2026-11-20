@@ -22,6 +22,12 @@ class MainActivity : Activity() {
         private const val REQ_FOLDER = 2
         private const val REQ_FILE = 3
         private const val ACCENT = 0xFF7C4DFF.toInt()
+
+        /**
+         * The request another app (BacklogQuest's home-screen tiles) sends to start a cart
+         * straight away: the cart file as the intent's data.
+         */
+        const val ACTION_LAUNCH_GAME = "com.hcode91.pocket.LAUNCH_GAME"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -55,6 +61,23 @@ class MainActivity : Activity() {
         root.addView(ScrollView(this).apply { addView(list) },
             LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
         setContentView(root)
+
+        // Started for a game: go straight to it. If it can't start (no boot ROM yet), the menu
+        // stays open so the reason can be fixed here.
+        if (savedInstanceState == null && launchFrom(intent)) finish()
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        if (launchFrom(intent)) finish()
+    }
+
+    private fun launchFrom(i: Intent?): Boolean {
+        if (i?.action != ACTION_LAUNCH_GAME) return false
+        val uri = i.data ?: return false
+        val name = DocumentFile.fromSingleUri(this, uri)?.name
+            ?: uri.lastPathSegment?.substringAfterLast('/') ?: "game"
+        return launch(uri, name)
     }
 
     override fun onResume() {
@@ -95,15 +118,18 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun launch(uri: Uri, name: String) {
+    private fun launch(uri: Uri, name: String): Boolean {
         if (!Storage.biosFile(this).exists()) {
             Toast.makeText(this, "Set the boot ROM (ax208.bin) first", Toast.LENGTH_LONG).show()
-            return
+            return false
         }
         startActivity(Intent(this, EmulatorActivity::class.java).apply {
             data = uri
             putExtra("name", name)
+            // A file handed over by another app is only readable with its grant passed along.
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         })
+        return true
     }
 
     private fun pick(req: Int, action: String) {

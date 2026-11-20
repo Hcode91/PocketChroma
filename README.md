@@ -27,3 +27,10 @@ Desktop smoke test for the core:
 g++ -std=c++17 -O2 -o headless tools/headless.cpp core/*.cpp
 ./headless ax208.bin game.bin 600 out.ppm
 ```
+
+## Starting a game from another app
+
+Launchers and trackers (such as BacklogQuest's home-screen tiles) can start a cart directly: send
+`com.hcode91.pocket.LAUNCH_GAME` to the app's launcher activity with the cart file (`.bin` or
+`.zip`) as the intent's data, granting read access to it. Without the boot ROM the menu opens
+instead.
